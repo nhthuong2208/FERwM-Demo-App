@@ -1,0 +1,57 @@
+.body {
+    font-family: Arial, Helvetica, sans-serif
+}
+
+.logo-header-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.app-logo {
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+}
+
+.logo {
+    color: darkgreen;
+}
+
+.model-choice {
+    display: flex;
+    margin-left: 2rem;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.title-choose-model {
+    font-size: 20px;
+}
+
+.model-select {
+    padding: 8px 10px;
+    font-size: 15px;
+    border-radius: 5px;
+}
+
+.predict-btn {
+    width: fit-content;
+    padding: 10px;
+    background-color: blue;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    text-transform: uppercase;
+}
+
+.predict-btn:hover {
+    background-color: rgb(0, 0, 122);
+}
+
+.predict-btn:disabled,
+.predict-btn[disabled]{
+  border: 1px solid #999999;
+  background-color: #cccccc;
+  color: #666666;
+}

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block stylesheet %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/welcome.css') }}">
+{% endblock %}
+
+{% block content %}
+    <title>{% block title %} Welcome Page {% endblock %}</title>
+    <div class="welcome-page">
+        <h1 class="welcome-title">Welcome to FER Demo App</h1>
+        <p>Click the button below to pick the image to check expression!</p>
+        <input type="file" id="imageUpload" accept="image/jpeg, image/png, image/jpg">
+        <label for="imageUpload"><div id="OpenImgUpload" class="button-choose-image">Choose image</div></label>
+    </div>
+
+    <div class="image-classification-section">
+        <div class="image-section">
+            <div id="image-display"></div>
+        </div>
+        <div id="predict-result" class="prediction-section">
+        
+        </div>
+    </div>
+    {% block javascript %} 
+        <script src="{{ url_for('static', filename='javascript/welcome.js') }}"></script>
+    {% endblock %}
+{% endblock %}

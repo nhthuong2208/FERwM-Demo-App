@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>{% block title %} {% endblock %} - FER app</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    {% block stylesheet %} {% endblock %}
+</head>
+
+<body>
+    <header>
+        <div class="logo-header-section">
+            <img class="app-logo" src="{{ url_for('static', filename='images/hcmut.png') }}" alt="app-logo" />
+            <h1 class="logo">Facial Expression Recognition Demo</h1>
+            <!-- <strong>
+                <nav>
+                    <ul class="menu">
+                        <li><a href="#">Home</a></li>
+                        <li><a href="#">About</a></li>
+                    </ul>
+                </nav>
+            </strong> -->
+        </div>
+    </header>
+
+    <div class="model-choice">
+        <div class="title-choose-model">Choose model:</div>
+        <select class="model-select">
+            <option>Multi-task EfficientNet-B2</option>
+            <option>FAN</option>
+            <option>InceptionResnetV2</option>
+        </select>
+        <button id="predict-expr-btn" class="predict-btn" onclick=predictExprBtnClicked() disabled>Predict</button>
+    </div>
+
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <script src="{{ url_for('static', filename='javascript/base.js') }}"></script>
+    {% block javascript %} {% endblock %}
+</body>
+
+</html>
