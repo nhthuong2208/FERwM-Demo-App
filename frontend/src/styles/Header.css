@@ -1,0 +1,16 @@
+.logo-header-section {
+    margin-left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.app-logo {
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+}
+
+.logo {
+    color: darkgreen;
+}

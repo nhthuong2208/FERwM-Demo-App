@@ -1,0 +1,6 @@
+.image-intro {
+    margin: auto;
+    width: fit-content;
+    display: flex;
+    column-gap: 10px;
+}
