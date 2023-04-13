@@ -1,16 +1,15 @@
 from flask import Blueprint, render_template, request, jsonify, url_for, send_from_directory
 from werkzeug.utils import secure_filename
 import os
-import torch
 from PIL import Image
 from io import BytesIO
 import re, base64
-from torchvision import transforms
 from utils import *
 from urllib.parse import urlparse
 import numpy as np
 from configs import *
-from networks import resnet18, CustomClassifier
+from networks import *
+
 
 main = Blueprint('main', __name__)
 # {0: 'negative', 1: 'neutral', 2: 'positive'}
@@ -49,15 +48,17 @@ def predict_expression():
         image_str = request.json["image"]
         image_file = urlparse(image_str)
         image_path = os.path.join('upload', os.path.basename(image_file.path))
-
+        print(f">> Predict from upload path: {image_path}")
 
         with open(image_path, "rb") as fh:
             image_data = BytesIO(fh.read())
         img = Image.open(image_data)
-        img.save("sample.jpg", "JPEG")
+        os.makedirs('data', exist_ok=True)
+        img.save("data/sample.jpg", "JPEG")
         
         # Get response
-        response = get_info("sample.jpg", "enet", "enet")
+        response = get_info("data/sample.jpg", "dacl", "enet", 'gradcam++', True, True, True)
+        print(response['message'])
         return jsonify(response)
 
 @main.route('/predict-video', methods=['POST'])
@@ -69,8 +70,12 @@ def predict_expression_video():
         byte_data = base64.b64decode(base64_data)
         image_data = BytesIO(byte_data)
         img = Image.open(image_data)
-        img.save("sample.jpg", "JPEG")
+        os.makedirs('data', exist_ok=True)
+        img.save("data/sample.jpg", "JPEG")
         
         # Get response
-        response = get_info("sample.jpg", "enet", "enet")
+        response = get_info("data/sample.jpg", "enet", "enet", 'gradcam++', True, True, True)
         return jsonify(response)
+
+# Need a vairable for which model
+# Need a button for back to main page

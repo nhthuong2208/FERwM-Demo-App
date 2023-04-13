@@ -71,6 +71,7 @@ const UploadImage = () => {
 
     const formData = new FormData()
     formData.append('file', file)
+    console.log(formData);
 
     return new Promise((resolve, reject) => {
       baseRequest.post('upload', formData)

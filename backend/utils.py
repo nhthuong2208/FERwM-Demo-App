@@ -1,7 +1,7 @@
 import torch
 import os
 from configs import *
-from networks import resnet18, CustomClassifier
+from networks import *
 from PIL import Image
 from io import BytesIO
 from torchvision import transforms
@@ -10,13 +10,13 @@ import torch.nn.functional as F
 import base64
 import torch
 import torch.nn as nn
-
+import math
 
 
 def get_model_layer(model_id: str = "dacl"):
     model, layer = None, None
     if model_id == 'enet':
-        model = torch.load(os.path.join(MODEL_PATH, "enet_mtl.pt"), map_location=device)['model']
+        model = torch.load("models/enet_mtl.pt", map_location=device)['model']
         layer = model.bn2, # last layer
 
     elif model_id == 'fan':
@@ -24,23 +24,26 @@ def get_model_layer(model_id: str = "dacl"):
         layer = model.layer4[-1], # last layer
     elif model_id == 'dacl':
         model = resnet18(pretrained=os.path.join(MODEL_PATH, 'dacl.pth'))
-        layer = None # can not use gradcam
+        layer = [None] # can not use gradcam
 
     return model, layer[0]
 
 
-def get_gradcam(img_path: str, model_id: str = "enet", method_id: str = 'gradcam++') -> None:
+def get_gradcam(img: np.ndarray, model_id: str = "enet", method_id: str = 'gradcam++', save_gradcam: bool = False) -> None:
     """Return the image
     
     """
     model, layer = get_model_layer(model_id)
     model.eval() # switch model to eval mode
     # print(layer)
+    # print(method_id)
+    # print(METHOD_GRADCAM.keys())
     if method_id not in METHOD_GRADCAM.keys():
         raise ValueError("Method id is not in METHOD_GRADCAM dictionary")
     
     cam = METHOD_GRADCAM[method_id](model=model, target_layer=layer, use_cuda=False) # load grad-cam
-    img = cv2.imread(img_path, 1) # read image ???
+    # img = cv2.imread(img_path, 1) # read image ???
+    # img shape(x,x,3)
     
     resized = cv2.resize(img, (224,224), interpolation = cv2.INTER_AREA) # resize image to (224,224)
 
@@ -55,64 +58,155 @@ def get_gradcam(img_path: str, model_id: str = "enet", method_id: str = 'gradcam
     cam_image = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
     cam_image = cv2.cvtColor(cam_image, cv2.COLOR_RGB2BGR) #BGR image
 
-    target_path = f"{img_path.split('.')[0]}_gradcam.jpg"
-    cv2.imwrite(target_path, cam_image)
+    if save_gradcam:
+        gradcam_path = f"{img_path.split('.')[0]}_gradcam.jpg"
+        cv2.imwrite(gradcam_path, cam_image)
+    
+    # Convert to decode base64
+    cam_str = base64.b64encode(cv2.imencode('.jpg', cam_image)[1]).decode('utf-8')
+    return cam_str
 
 
 
-
-def get_predict(model, path: str) -> dict:
-    response = dict()
+def get_predict(model, img: np.ndarray, response: dict) -> dict:
+    # response = dict()
     model.eval()
-    # try:
+
     with torch.no_grad():
-        # img_path = PATH + "sample" + '.jpg'
-        img_path = path
-        img = Image.open(img_path)
-
-
         # Resize and convert to tensor
-        transform = transforms.Compose([Resize((224, 224)), ToTensor()])
+        transform = transforms.Compose([ToTensor()])
+
+        img = cv2.resize(img, (224, 224))
 
         # convert = transforms.ToTensor()
         img_tensor = transform(img).unsqueeze(0).to(device)
         
         output = model(img_tensor) # ?
 
-        print(torch.argmax(output, dim=1).item())
+        # print(torch.argmax(output, dim=1).item())
         response['predict'] = EMOTION_INDEX[torch.argmax(output, dim=1).item()]
         
         probs = F.softmax(output, dim=1)
-        print("Probs:", probs)
+        # print("Probs:", probs)
         probs = probs.cpu().numpy()
         response['probs'] = {"negative" : f'{probs[0][0]}',
                             "neutral" : f'{probs[0][1]}',
                             "positive" : f'{probs[0][2]}'}
         
+
+
+
+
+
+
+# Final function
+def preprocess(img: np.ndarray, save_crop: bool = False, save_align: bool = False):
+    # img_path: str = 'samples/happy-1.png'
+    # Read the image using cv2
+    # img = cv2.imread(img_path)
+    # img.shape = (304,310,3)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+
+    # Detect the face in the image using dlib.get_frontal_face_detector()
+    faces = detector(gray)
+
+    # Raise exception if the number of faces is not equal to 1
+    if len(faces) == 0:
+        return (img, {'message': 'No faces detected'})
+    if len(faces) >= 2:
+        return (img, {'message': 'Too many faces detected'})
+
+    # Get the only face and its boundary
+    face = faces[0]
+    x1 = face.left()
+    y1 = face.top()
+    x2 = face.right()
+    y2 = face.bottom()
+
+    # crop the face image
+    crop_img = img[y1:y2, x1:x2]
+
+    # Save the crop image
+    if save_crop:
+        crop_path = f"{img_path.split('.')[0]}_crop.jpg"
+        cv2.imwrite(crop_path, crop_img)
+
+
+
+    # Get the facial landmarks
+    landmarks = predictor(gray, face)
+    if landmarks.part(36) is None:
+        return (img, {'message': 'Landmarks point 36 is not detected'})
+    if landmarks.part(45) is None:
+        return (img, {'message': 'Landmarks point 45 is not detected'})
     
-    return response
+    # Get the coordinates of the center of the two eyes
+    x1, y1 = landmarks.part(36).x, landmarks.part(36).y
+    x2, y2 = landmarks.part(45).x, landmarks.part(45).y
+    cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+    
+    # Calculate the angle between the line connecting the center of the two eyes and a horizontal line
+    angle = math.atan2(y2 - y1, x2 - x1) * 180 / math.pi
+    
+    # Rotate the crop image by the calculated angle
+    rows, cols = crop_img.shape[:2]
+    M = cv2.getRotationMatrix2D((cx, cy), angle, 1)
+    align_img = cv2.warpAffine(crop_img, M, (cols, rows))
+    
+    # Save the align image
+    if save_align:
+        align_path = f"{img_path.split('.')[0]}_align.jpg"
+        cv2.imwrite(align_path, align_img)
+    
+    # Return final image for next prediction
+    return (align_img, {'message': 'Process image successfully!!'})
 
 
 
 
+def get_info(_img_path: str = "samples/happy-1.png", model_predict_id: str = 'enet', 
+             model_gradcam_id: str = 'enet', method_gradcam_id: str = 'gradcam++',
+             save_crop: bool = False, save_align: bool = False, save_gradcam: bool = False):
+    global img_path
+    img_path = _img_path
+    img = cv2.imread(img_path)
+    # print(img.shape)
+    (img, response) = preprocess(img, save_crop, save_align) #True, True
 
-def get_info(img_path: str = "samples/happy-1.png", model_predict_id: str = 'enet', model_gradcam_id: str = 'enet'):
     model, _ = get_model_layer(model_predict_id)
     model.eval()
 
-    response = get_predict(model, img_path)
+    get_predict(model, img, response)
 
     # For gradcam
-    get_gradcam(img_path, model_gradcam_id)
-
-    gradcam_path = f"{img_path.split('.')[0]}_gradcam.jpg"
-    with open(gradcam_path, 'rb') as f:
-        image = f.read()
-
-    encoded_image = base64.b64encode(image).decode('utf-8')
-    response['gradcam'] = encoded_image
-    print(response)
+    can_str = get_gradcam(img, model_gradcam_id, method_gradcam_id, save_gradcam)
+    response['gradcam'] = can_str
+    # print(response)
     return response
 
+# model = torch.load("models/enet_mtl.pt", map_location=device)['model']
 
-# get_info("samples/happy-1.png")
+# # from timeit import default_timer as timer
+# import time
+# # img = cv2.imread('samples/happy-1_align.jpg')
+# # print(img.shape)
+# # print(type(img))
+# start = time.time()
+
+# get_info()
+
+# # align_face(img)
+# # process('samples/surprise.png',save_align=True, save_crop=True)
+
+# end = time.time()
+# print(end - start)
+
+# have load img: 0.03414773941040039s
+# no write img: 0.024904966354370117
+# no load, write: 0.02515721321105957
+# no load, no write: 0.019165992736816406
+
+# All False : 0.8 -> 0.6
+# Pipeline
+# img -> detect face = 0 -> align (2 eyes) -> crop_face | crop_tophalf -> model

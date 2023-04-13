@@ -2,6 +2,9 @@ backend/models/dacl.pth
 backend/models/enet_mtl.pt
 backend/models/fan_ms1m.pt
 
+backend/dlib_models/haarcascade_frontalface_default.xml
+backend/dlib_models/shape_predictor_68_face_landmarks.dat
+
 .DS_Store
 .env
 .flaskenv
