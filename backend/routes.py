@@ -57,8 +57,8 @@ def predict_expression():
         img.save("data/sample.jpg", "JPEG")
         
         # Get response
-        response = get_info("data/sample.jpg", "dacl", "enet", 'gradcam++', True, True, True)
-        print(response['message'])
+        response = get_info("data/sample.jpg")
+        # print(response['message'])
         return jsonify(response)
 
 @main.route('/predict-video', methods=['POST'])
@@ -74,8 +74,5 @@ def predict_expression_video():
         img.save("data/sample.jpg", "JPEG")
         
         # Get response
-        response = get_info("data/sample.jpg", "enet", "enet", 'gradcam++', True, True, True)
+        response = get_info("data/sample.jpg")
         return jsonify(response)
-
-# Need a vairable for which model
-# Need a button for back to main page
