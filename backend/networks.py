@@ -262,7 +262,7 @@ class ResNet(nn.Module):
 def _resnet(arch, block, layers, pretrained, progress, **kwargs):
     model = ResNet(block, layers, **kwargs)
     if not pretrained == '':
-        print(f'[!] initializing model with "{pretrained}" weights ...')
+        # print(f'[!] initializing model with "{pretrained}" weights ...')
         if pretrained == 'imagenet':
             state_dict = load_state_dict_from_url(model_urls[arch],
                                                   progress=progress)
@@ -272,11 +272,11 @@ def _resnet(arch, block, layers, pretrained, progress, **kwargs):
         else: #dacl_acc
             dacl = torch.load(f'{pretrained}', map_location=torch.device('cpu'))
             state_dict = dacl['model_state_dict']
-            print(">> Get state dict of model {pretrained} successfully!!")
+            # print(">> Get state dict of model {pretrained} successfully!!")
         # else:
         #     raise NotImplementedError('wrong pretrained model!')
         model.load_state_dict(state_dict, strict=False)
-        print(">> Load state dict of model {pretrained} successfully!!")
+        # print(">> Load state dict of model {pretrained} successfully!!")
     return model
 
 

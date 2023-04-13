@@ -29,7 +29,8 @@ def get_model_layer(model_id: str = "dacl"):
     return model, layer[0]
 
 
-def get_gradcam(img: np.ndarray, model_id: str = "enet", method_id: str = 'gradcam++', save_gradcam: bool = False) -> None:
+def get_gradcam(img: np.ndarray, model_id: str = "enet", method_id: str = 'gradcam++', 
+                save_gradcam: bool = False, encode_gradcam: bool = True) -> None:
     """Return the image
     
     """
@@ -63,7 +64,8 @@ def get_gradcam(img: np.ndarray, model_id: str = "enet", method_id: str = 'gradc
         cv2.imwrite(gradcam_path, cam_image)
     
     # Convert to decode base64
-    cam_str = base64.b64encode(cv2.imencode('.jpg', cam_image)[1]).decode('utf-8')
+    if encode_gradcam:
+        cam_str = base64.b64encode(cv2.imencode('.jpg', cam_image)[1]).decode('utf-8')
     return cam_str
 
 
@@ -100,12 +102,14 @@ def get_predict(model, img: np.ndarray, response: dict) -> dict:
 
 
 # Final function
-def preprocess(img: np.ndarray, save_crop: bool = False, save_align: bool = False):
+def preprocess(img: np.ndarray, save_crop: bool = False, save_align: bool = False,
+               encode_crop: bool = False, encode_align: bool = False):
     # img_path: str = 'samples/happy-1.png'
     # Read the image using cv2
     # img = cv2.imread(img_path)
     # img.shape = (304,310,3)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    response = dict()
 
 
     # Detect the face in the image using dlib.get_frontal_face_detector()
@@ -132,6 +136,9 @@ def preprocess(img: np.ndarray, save_crop: bool = False, save_align: bool = Fals
         crop_path = f"{img_path.split('.')[0]}_crop.jpg"
         cv2.imwrite(crop_path, crop_img)
 
+    if encode_crop:
+        crop_str = base64.b64encode(cv2.imencode('.jpg', crop_img)[1]).decode('utf-8')
+        response['crop'] = crop_str
 
 
     # Get the facial landmarks
@@ -159,54 +166,55 @@ def preprocess(img: np.ndarray, save_crop: bool = False, save_align: bool = Fals
         align_path = f"{img_path.split('.')[0]}_align.jpg"
         cv2.imwrite(align_path, align_img)
     
+    if encode_align:
+        align_str = base64.b64encode(cv2.imencode('.jpg', align_img)[1]).decode('utf-8')
+        response['align'] = align_str
+
+
     # Return final image for next prediction
-    return (align_img, {'message': 'Process image successfully!!'})
+    response['message'] = 'Process image successfully!!'
+    return (align_img, response)
 
 
 
 
-def get_info(_img_path: str = "samples/happy-1.png", model_predict_id: str = 'enet', 
+def get_info(_img_path: str = "samples/happy-1.png", model_predict_id: str = 'dacl', 
              model_gradcam_id: str = 'enet', method_gradcam_id: str = 'gradcam++',
-             save_crop: bool = False, save_align: bool = False, save_gradcam: bool = False):
-    global img_path
+             save_crop: bool = False, save_align: bool = False, save_gradcam: bool = False,
+             encode_crop: bool = False, encode_align: bool = False, encode_gradcam: bool = True):
+    global img_path, model
     img_path = _img_path
     img = cv2.imread(img_path)
     # print(img.shape)
-    (img, response) = preprocess(img, save_crop, save_align) #True, True
+    (img, response) = preprocess(img, save_crop, save_align, encode_crop, encode_align) #True, True
 
-    model, _ = get_model_layer(model_predict_id)
-    model.eval()
+    if model is None:
+        model, _ = get_model_layer(model_predict_id)
+        model.eval()
 
     get_predict(model, img, response)
 
     # For gradcam
-    can_str = get_gradcam(img, model_gradcam_id, method_gradcam_id, save_gradcam)
-    response['gradcam'] = can_str
-    # print(response)
+    if encode_gradcam:
+        can_str = get_gradcam(img, model_gradcam_id, method_gradcam_id, save_gradcam)
+        response['gradcam'] = can_str
+
     return response
 
-# model = torch.load("models/enet_mtl.pt", map_location=device)['model']
 
-# # from timeit import default_timer as timer
-# import time
-# # img = cv2.imread('samples/happy-1_align.jpg')
-# # print(img.shape)
-# # print(type(img))
-# start = time.time()
+def benchmark():
+    import time
 
-# get_info()
+    start = time.time()
 
-# # align_face(img)
-# # process('samples/surprise.png',save_align=True, save_crop=True)
+    # print(get_info("samples/happy-1.png", "dacl", "enet", 'gradcam++', True, True, True, True, True))
+    # print()
+    get_info("samples/happy-1.png")
 
-# end = time.time()
-# print(end - start)
+    end = time.time()
+    print('Total time is:', end - start)
 
-# have load img: 0.03414773941040039s
-# no write img: 0.024904966354370117
-# no load, write: 0.02515721321105957
-# no load, no write: 0.019165992736816406
+benchmark()
 
-# All False : 0.8 -> 0.6
-# Pipeline
-# img -> detect face = 0 -> align (2 eyes) -> crop_face | crop_tophalf -> model
+# res = get_info("samples/happy-1.png")
+# print(res)
