@@ -1,0 +1,1 @@
+Please download the 2 pretrained models including `haarcascade_frontalface_default.xml` and `shape_predictor_68_face_landmarks.dat` at Drive link: https://drive.google.com/drive/folders/1rG1Q4MB8vGLn5aQVKjOq3ETUfanNeIiV?usp=sharing. If the link is not working, please contact with me via `quachminhtuan01@gmail.com`

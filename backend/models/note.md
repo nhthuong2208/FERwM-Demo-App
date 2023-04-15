@@ -1,0 +1,1 @@
+Please download the 3 models including `dacl.pth`, `enet_mtl.pt`, `fan_ms1m.pt` at Drive link: https://drive.google.com/drive/folders/1xI-DjiRNpHCuu-QUpkyNvne8-z4wVBUt?usp=sharing. If the link is not working, please contact with me via `quachminhtuan01@gmail.com`

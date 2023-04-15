@@ -71,6 +71,7 @@ const UploadImage = () => {
 
     const formData = new FormData()
     formData.append('file', file)
+    console.log(formData);
 
     return new Promise((resolve, reject) => {
       baseRequest.post('upload', formData)
@@ -84,14 +85,15 @@ const UploadImage = () => {
     })
   };
 
+  // Change probs
   const handlePredict = () => {
     baseRequest.post('predict', { 'image': imgUrl })
       .then(response => {
-        setPredictData(response.data)
-        var positive_pred = parseFloat(response.data.positive).toFixed(2)
-        var negative_pred = parseFloat(response.data.negative).toFixed(2)
-        var neutral_pred = parseFloat(response.data.neutral).toFixed(2)
-        let max_val = Math.max(response.data.positive, response.data.negative, response.data.neutral).toFixed(2)
+        setPredictData(response.data.probs)
+        var positive_pred = parseFloat(response.data.probs.positive).toFixed(2)
+        var negative_pred = parseFloat(response.data.probs.negative).toFixed(2)
+        var neutral_pred = parseFloat(response.data.probs.neutral).toFixed(2)
+        let max_val = Math.max(response.data.probs.positive, response.data.probs.negative, response.data.probs.neutral).toFixed(2)
         switch (max_val) {
           case positive_pred:
             setResultText('positive')
