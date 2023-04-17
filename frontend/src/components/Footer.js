@@ -5,7 +5,6 @@ const footerStyle = {
     bottom: "0",
     height: "50px",
     width: "100%",
-    backgroundColor: "gray",
     lineHeight: "50px",
     textAlign: "right",
     display: "flex", 

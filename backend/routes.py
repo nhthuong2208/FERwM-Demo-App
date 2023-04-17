@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 import numpy as np
 from configs import *
 from networks import *
+from flask_cors import cross_origin
 
 
 main = Blueprint('main', __name__)
@@ -28,6 +29,7 @@ def about():
     pass
 
 @main.route('/upload', methods=['POST'])
+@cross_origin(origin="*", headers=["Content-Type"])
 def upload():
     file = request.files['file']
     # `img` is reading the image from the given `img_path` using OpenCV's `cv2.imread()` function.
@@ -39,10 +41,12 @@ def upload():
     return jsonify(url=file_url)
 
 @main.route('/uploads/<filename>')
+@cross_origin(origin="*", headers=["Content-Type"])
 def uploaded_file(filename):
     return send_from_directory('upload', filename)
 
 @main.route('/predict', methods=['POST'])
+@cross_origin(origin="*", headers=["Content-Type"])
 def predict_expression():
     if request.method == 'POST':
         image_str = request.json["image"]
@@ -62,6 +66,7 @@ def predict_expression():
         return jsonify(response)
 
 @main.route('/predict-video', methods=['POST'])
+@cross_origin(origin="*", headers=["Content-Type"])
 def predict_expression_video():
     if request.method == 'POST':
         image_str = request.json["image"]
