@@ -1,7 +1,9 @@
 import React from "react";
 import { Image, Button, Space } from "antd";
 import { CameraOutlined, UploadOutlined } from "@ant-design/icons";
-import negative_img from "../assets/images/Steve_Patterson_0001.jpg";
+import negative_img from "../assets/images/anger-1.jpg";
+import neutral_img from "../assets/images/disgust-1.png";
+import positive_img from "../assets/images/happy-1.png";
 import Header from "../components/Header";
 import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
@@ -47,8 +49,8 @@ const Welcome = () => {
         <h1 style={titleText}>Facial Expresison Recogniton Demo App</h1>
         <div style={imageIntro}>
           <Image width={200} src={negative_img} />
-          <Image width={200} src={negative_img} />
-          <Image width={200} src={negative_img} />
+          <Image width={200} src={neutral_img} />
+          <Image width={200} src={positive_img} />
         </div>
         <div style={welcomeText}>
           This is a website demo the application of our project: Recognize the

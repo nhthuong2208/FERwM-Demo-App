@@ -64,12 +64,12 @@ const UploadFile = () => {
   };
   return (
     <div style={containerStyle}>
-      {localStorage.getItem("url") !== "" ?
+      {(localStorage.getItem("url") !== null && localStorage.getItem("url") !== "") ?
           (<img src={localStorage.getItem("url")} alt="uploaded" style={imageStyle} />) :
           (<Upload.Dragger
             name="file"
             listType="picture"
-            disabled={localStorage.getItem("url") !== "" ? true : false}
+            disabled={(localStorage.getItem("url") !== null && localStorage.getItem("url") !== "") ? true : false}
             showUploadList={false}
             action={process.env.REACT_APP_BASE_API_URL + 'upload'}
             beforeUpload={beforeUpload}

@@ -1,26 +1,44 @@
 import React, { useState, useRef, useEffect } from "react";
-import Webcam from "react-webcam"
+import Webcam from "react-webcam";
 import baseRequest from "../services/baseRequest";
-import { Card } from "antd";
+import { Checkbox, Col, Row } from "antd";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
 const videoConstraints = {
   width: 400,
   height: 400,
-  facingMode: 'user',
-}
+  facingMode: "user",
+};
+
+const imageStyle = {
+  border: "1px dashed #d9d9d9",
+  borderRadius: "8px",
+  width: "390px",
+  marginTop: "20px",
+};
+
+const containerStyle = {
+  padding: "10px",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center" /* Optional: to center horizontally */,
+  height: "50vh" /* Optional: set the height of the container */,
+};
 
 const WebcamImage = () => {
   const webcamRef = useRef(null);
-  const [predictData, setPredictData] = useState(null)
-  const [resultText, setResultText] = useState('')
+  const [predictData, setPredictData] = useState(null);
+  const [showGrad, setShowGrad] = useState(false);
+  const [showTwo, setShowTwo] = useState(false);
 
   const runCoco = () => {
-    //  Loop and detect hands
+    // Loop and detect hands
+    showGrad ? setShowTwo(true) : setShowTwo(false);
     setInterval(() => {
-      handleCallAPI()
-    }, 1000);
+      handleCallAPI();
+    }, 3000);
   };
 
   // Change probs
@@ -33,71 +51,132 @@ const WebcamImage = () => {
       // Get Video Properties
       const img = webcamRef.current.getScreenshot();
 
-      baseRequest.post('predict-video', { 'image': img })
-        .then(response => {
-          setPredictData(response.data.probs)
-          var positive_pred = parseFloat(response.data.probs.positive).toFixed(2)
-          var negative_pred = parseFloat(response.data.probs.negative).toFixed(2)
-          var neutral_pred = parseFloat(response.data.probs.neutral).toFixed(2)
-          let max_val = Math.max(response.data.probs.positive, response.data.probs.negative, response.data.probs.neutral).toFixed(2)
-          switch (max_val) {
-            case positive_pred:
-              setResultText('positive')
-              break
-            case negative_pred:
-              setResultText('negative')
-              break
-            case neutral_pred:
-              setResultText('neutral')
-              break
-          }
+      baseRequest
+        .post("predict-video", { image: img })
+        .then((response) => {
+          setPredictData(response.data);
         })
-        .catch(error => {
-          console.log(error)
-        })
+        .catch((error) => {
+          console.log(error);
+        });
     }
-  }
+  };
 
   useEffect(() => {
-    runCoco()
-  }, [])
+    runCoco();
+  }, [showGrad]);
 
   return (
     <>
       <Header />
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        columnGap: "50px",
-        height: "60vh"
-      }}>
-        <Webcam
-          audio={false}
-          ref={webcamRef}
-          videoConstraints={videoConstraints}
-          screenshotFormat="image/jpeg"
-          mirrored={true} />
-        {predictData !== null ?
-          <Card
-            title="Result"
-            headStyle={{
-              textAlign: "center"
-            }}
+      <div
+        style={{
+          backgroundColor: "#f3f0ec",
+          height: "calc(100vh - 110px)",
+          overflow: "none",
+          marginTop: "60px",
+        }}
+      >
+        {showTwo ? (
+          <Row style={{ marginTop: "10px" }}>
+            <Col
+              span={12}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Webcam
+                audio={false}
+                ref={webcamRef}
+                videoConstraints={videoConstraints}
+                screenshotFormat="image/jpeg"
+                mirrored={true}
+              />
+              <div style={{ marginTop: "15px" }}>
+                <Checkbox
+                  checked={showGrad}
+                  disabled={predictData ? false : true}
+                  onChange={(e) => setShowGrad(e.target.checked)}
+                >
+                  Show Grad-CAM to verify
+                </Checkbox>
+              </div>
+            </Col>
+            <Col span={12} style={containerStyle}>
+              <img
+                src={`data:image/jpeg;base64,${predictData.gradcam}`}
+                style={imageStyle}
+                alt="uploaded"
+              />
+            </Col>
+          </Row>
+        ) : (
+          <div
             style={{
-              width: 300,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              marginTop: "10px",
             }}
           >
-            <p>Negative: {predictData.negative}</p>
-            <p>Positive: {predictData.positive}</p>
-            <p>Neutral: {predictData.neutral}</p>
-            <h1 style={{ color: "red", textAlign: "center" }}>{resultText}</h1>
-          </Card> : <div></div>
-        }
+            <Webcam
+              audio={false}
+              ref={webcamRef}
+              videoConstraints={videoConstraints}
+              screenshotFormat="image/jpeg"
+              mirrored={true}
+            />
+            <div style={{ marginTop: "15px" }}>
+              <Checkbox
+                checked={showGrad}
+                disabled={predictData ? false : true}
+                onChange={(e) => setShowGrad(e.target.checked)}
+              >
+                Show Grad-CAM to verify
+              </Checkbox>
+            </div>
+          </div>
+        )}
+        {predictData && (
+          <div style={{ textAlign: "center", marginTop: "40px" }}>
+            <div>
+              Negative:{" "}
+              <span style={{ fontWeight: "bold" }}>
+                {parseFloat(predictData.probs.negative).toFixed(4)}
+              </span>
+              , Positive:{" "}
+              <span style={{ fontWeight: "bold" }}>
+                {parseFloat(predictData.probs.positive).toFixed(4)}
+              </span>
+              , Neutral:{" "}
+              <span style={{ fontWeight: "bold" }}>
+                {parseFloat(predictData.probs.neutral).toFixed(4)}
+              </span>{" "}
+            </div>
+            <div
+              style={{
+                fontWeight: "bold",
+                fontSize: "30px",
+                color:
+                  predictData.predict === "negative"
+                    ? "red"
+                    : predictData.predict === "positive"
+                    ? "green"
+                    : "yellow",
+              }}
+            >
+              {predictData.predict}
+            </div>
+          </div>
+        )}
       </div>
       <Footer />
     </>
   );
-}
+};
 
 export default WebcamImage;
