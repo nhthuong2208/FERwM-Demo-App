@@ -31,7 +31,7 @@ EMOTION_INDEX = {0: 'negative', 1: 'neutral', 2: 'positive'}
 
 PATH = os.path.join(os.getcwd(), 'data')
 UPLOAD_PATH = os.path.join(os.getcwd(), 'FER_app/static/images')
-MODEL_PATH = os.path.join(os.getcwd(), 'models')
+MODEL_PATH = os.path.join(os.getcwd(), 'pretrained_models')
 
 # Load the facial landmark detector
 detector = dlib.get_frontal_face_detector()

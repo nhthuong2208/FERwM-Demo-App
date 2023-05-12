@@ -11,6 +11,8 @@ import base64
 import torch
 import torch.nn as nn
 import math
+import random
+import numbers
 
 
 def get_model_layer(model_id: str = "dacl"):
@@ -33,7 +35,7 @@ def get_model_layer(model_id: str = "dacl"):
     
 
     Args:
-        model_id (str): A string value identifying the model. Only supported: enet, fan, dacl
+        model_id (str): A string value identifying the model. Only supported: enet, fan, dacl, dacl_acc, dacl_rec
     
     Returns:
         model: The pytorch model with fully params load from pretrained file
@@ -42,13 +44,20 @@ def get_model_layer(model_id: str = "dacl"):
     """
     model, layer = None, None
     if model_id == 'enet':
-        model = torch.load("models/enet_mtl.pt", map_location=device)['model']
+        model = torch.load(os.path.join(MODEL_PATH, "enet_mtl.pt"), map_location=device)['model']
         layer = model.bn2, # last layer
     elif model_id == 'fan':
         model = torch.load(os.path.join(MODEL_PATH, "fan_ms1m.pt"), map_location=device)['model']
         layer = model.layer4[-1], # last layer
+    elif model_id == 'dacl_acc':
+        model = torch.load(os.path.join(MODEL_PATH, "dacl_acc.pt"), map_location=device)
+        layer = [None] # can not use gradcam
+    elif model_id == 'dacl_rec':
+        model = torch.load(os.path.join(MODEL_PATH, "dacl_rec.pt"), map_location=device)
+        layer = [None] # can not use gradcam
     elif model_id == 'dacl':
-        model = resnet18(pretrained=os.path.join(MODEL_PATH, 'dacl.pth'))
+        # model = resnet18(pretrained=os.path.join(MODEL_PATH, 'dacl.pth'))
+        model = torch.load(os.path.join(MODEL_PATH, "dacl_rec.pt"), map_location=device) # best model
         layer = [None] # can not use gradcam
 
     return model, layer[0]
@@ -99,6 +108,23 @@ def get_gradcam(img: np.ndarray, model_id: str = "enet", method_id: str = 'gradc
     cam_str = base64.b64encode(cv2.imencode('.jpg', cam_image)[1]).decode('utf-8')
     return cam_str
 
+class RandomFiveCrop(object):
+
+    def __init__(self, size):
+        self.size = size
+        if isinstance(size, numbers.Number):
+            self.size = (int(size), int(size))
+        else:
+            assert len(size) == 2, "Please provide only two dimensions (h, w) for size."
+            self.size = size
+
+    def __call__(self, img):
+        # randomly return one of the five crops
+        return F.five_crop(img, self.size)[random.randint(0, 4)]
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(size={0})'.format(self.size)
+
 
 
 def get_predict(model, img: np.ndarray, response: dict) -> None:
@@ -132,24 +158,31 @@ def get_predict(model, img: np.ndarray, response: dict) -> None:
 
     with torch.no_grad():
         # Resize and convert to tensor
-        transform = transforms.Compose([ToTensor()])
-        img = cv2.resize(img, (224, 224))
-        img_tensor = transform(img).unsqueeze(0).to(device) 
-        output = model(img_tensor)
+        normalize = transforms.Normalize(mean=[0.5752, 0.4495, 0.4012],
+                                     std=[0.2086, 0.1911, 0.1827])
 
-        
+        transform=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            normalize,
+        ])
+
+        img_tensor = transform(img).unsqueeze(0)
+
+        if model_id.startswith('dacl'):
+            _, output, _ = model(img_tensor) 
+        else: 
+            output = model(img_tensor)
+
         probs = F.softmax(output, dim=1)
         probs = probs.cpu().numpy()
-        idx = np.random.choice([0, 1, 2], size=1, replace=True, p=[probs[0][0], probs[0][1], probs[0][2]])[0]
-        # response['predict'] = EMOTION_INDEX[torch.argmax(output, dim=1).item()]
-        response['predict'] = EMOTION_INDEX[idx]
+
+        response['predict'] = EMOTION_INDEX[torch.argmax(output, dim=1).item()]
+
         response['probs'] = {"negative" : f'{probs[0][0]}',
                             "neutral" : f'{probs[0][1]}',
                             "positive" : f'{probs[0][2]}'}
-        
-
-
-
 
 
 
@@ -294,25 +327,23 @@ def get_info(_img_path: str = "samples/happy-1.png", model_predict_id: str = 'da
             }
     
     """
-
-
-    global img_path, model
+    global img_path, model, model_id
+    
+    model_id = model_predict_id
     img_path = _img_path
     img = cv2.imread(img_path)
-    # print(img.shape)
-    (img, response) = preprocess(img, save_crop, save_align, encode_crop, encode_align) #True, True
+    # (img, response) = preprocess(img, save_crop, save_align, encode_crop, encode_align) #True, True
+    response = {}
 
     if model is None:
         model, _ = get_model_layer(model_predict_id)
         model.eval()
 
     get_predict(model, img, response)
-
     # For gradcam
     if encode_gradcam:
         can_str = get_gradcam(img, model_gradcam_id, method_gradcam_id, save_gradcam)
         response['gradcam'] = can_str
-
     return response
 
 

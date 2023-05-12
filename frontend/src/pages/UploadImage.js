@@ -137,7 +137,7 @@ const UploadImage = () => {
                       ? "red"
                       : predictData.predict === "positive"
                       ? "green"
-                      : "yellow",
+                      : "#8B8000",
                 }}
               >
                 {predictData.predict}
@@ -201,7 +201,7 @@ const UploadImage = () => {
                         ? "red"
                         : predictData.predict === "positive"
                         ? "green"
-                        : "yellow",
+                        : "#8B8000",
                   }}
                 >
                   {predictData.predict}

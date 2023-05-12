@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
+# from torchvision.models.utils import load_state_dict_from_url
 from torch.hub import load_state_dict_from_url
 
-# torch.manual_seed(0)
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152', 'resnext50_32x4d', 'resnext101_32x8d',
@@ -21,28 +21,6 @@ model_urls = {
     'wide_resnet101_2': 'https://download.pytorch.org/models/wide_resnet101_2-32ee1156.pth',
 }
 
-
-class CustomClassifier(nn.Module):
-    def __init__(self, in_feature: int, out_feature: int = 3):
-        super(CustomClassifier, self).__init__()
-        
-        self.dense1 = nn.Linear(in_feature, 64) #2040
-        self.relu1 = nn.ReLU()
-        self.dropout1 = nn.Dropout(0.2)
-        self.dense2 = nn.Linear(64, 64)
-        self.relu2 = nn.ReLU()
-        self.dropout2 = nn.Dropout(0.2)
-        self.dense3 = nn.Linear(64, out_feature)
-        
-    def forward(self, x):
-        x = self.dense1(x)
-        x = self.relu1(x)
-        x = self.dropout1(x)
-        x = self.dense2(x)
-        x = self.relu2(x)
-        x = self.dropout2(x)
-        x = self.dense3(x)
-        return x
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
     """3x3 convolution with padding"""
@@ -140,7 +118,7 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, num_classes=3, zero_init_residual=False,
+    def __init__(self, block, layers, num_classes=1000, zero_init_residual=False,
                  groups=1, width_per_group=64, replace_stride_with_dilation=None,
                  norm_layer=None):
         super(ResNet, self).__init__()
@@ -198,8 +176,7 @@ class ResNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        # self.fc = nn.Linear(512 * block.expansion, num_classes)
-        self.fc = nn.Linear(512, num_classes)
+        self.fc = nn.Linear(512 * block.expansion, num_classes)
 
         # Zero-initialize the last BN in each residual branch,
         # so that the residual branch starts with zeros, and each residual block behaves like an identity.
@@ -254,29 +231,23 @@ class ResNet(nn.Module):
         x = self.avgpool(x)
         f = torch.flatten(x, 1)
         out = self.fc(f)
-        
-        return out
-        # return f, out, A
+
+        return f, out, A
 
 
 def _resnet(arch, block, layers, pretrained, progress, **kwargs):
     model = ResNet(block, layers, **kwargs)
     if not pretrained == '':
-        # print(f'[!] initializing model with "{pretrained}" weights ...')
+        print(f'[!] initializing model with "{pretrained}" weights ...')
         if pretrained == 'imagenet':
             state_dict = load_state_dict_from_url(model_urls[arch],
                                                   progress=progress)
         elif pretrained == 'msceleb':
             msceleb_model = torch.load('models/resnet18_msceleb.pth', map_location=torch.device('cpu'))
             state_dict = msceleb_model['state_dict']
-        else: #dacl_acc
-            dacl = torch.load(f'{pretrained}', map_location=torch.device('cpu'))
-            state_dict = dacl['model_state_dict']
-            # print(">> Get state dict of model {pretrained} successfully!!")
-        # else:
-        #     raise NotImplementedError('wrong pretrained model!')
+        else:
+            raise NotImplementedError('wrong pretrained model!')
         model.load_state_dict(state_dict, strict=False)
-        # print(">> Load state dict of model {pretrained} successfully!!")
     return model
 
 

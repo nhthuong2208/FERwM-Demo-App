@@ -61,8 +61,7 @@ def predict_expression():
         img.save("data/sample.jpg", "JPEG")
         
         # Get response
-        response = get_info("data/sample.jpg")
-        # print(response['message'])
+        response = get_info("data/sample.jpg", 'dacl')
         return jsonify(response)
 
 @main.route('/predict-video', methods=['POST'])
@@ -79,5 +78,5 @@ def predict_expression_video():
         img.save("data/sample.jpg", "JPEG")
         
         # Get response
-        response = get_info("data/sample.jpg")
+        response = get_info("data/sample.jpg", 'dacl',)
         return jsonify(response)
