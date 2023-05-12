@@ -137,9 +137,12 @@ def get_predict(model, img: np.ndarray, response: dict) -> None:
         img_tensor = transform(img).unsqueeze(0).to(device) 
         output = model(img_tensor)
 
-        response['predict'] = EMOTION_INDEX[torch.argmax(output, dim=1).item()]
+        
         probs = F.softmax(output, dim=1)
         probs = probs.cpu().numpy()
+        idx = np.random.choice([0, 1, 2], size=1, replace=True, p=[probs[0][0], probs[0][1], probs[0][2]])[0]
+        # response['predict'] = EMOTION_INDEX[torch.argmax(output, dim=1).item()]
+        response['predict'] = EMOTION_INDEX[idx]
         response['probs'] = {"negative" : f'{probs[0][0]}',
                             "neutral" : f'{probs[0][1]}',
                             "positive" : f'{probs[0][2]}'}
